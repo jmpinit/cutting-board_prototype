@@ -1,8 +1,24 @@
 document.addEventListener('DOMContentLoaded', function() {
+    var lwip = require('lwip');
+
     if (!Detector.webgl) Detector.addGetWebGLMessage();
 
-    var SCREEN_WIDTH = window.innerWidth;
-    var SCREEN_HEIGHT = window.innerHeight;
+    var SCREEN_WIDTH, SCREEN_HEIGHT;
+    var windowHalfX, windowHalfY;
+
+    function resized() {
+        SCREEN_WIDTH = window.innerWidth;
+        SCREEN_HEIGHT = window.innerHeight;
+        windowHalfX = window.innerWidth / 2;
+        windowHalfY = window.innerHeight / 2;
+
+        if(webglRenderer !== undefined)
+            webglRenderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+
+    window.onresize = function(event) { resized(); };
+    resized();
+
     var FLOOR = 0;
 
     var container;
@@ -14,9 +30,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var mouseX = 0, mouseY = 0;
     var mousemoveX = 0, mousemoveY = 0;
-
-    var windowHalfX = window.innerWidth / 2;
-    var windowHalfY = window.innerHeight / 2;
 
     document.addEventListener('mousedown', onDocumentMouseDown, false);
     document.addEventListener('mouseup', onDocumentMouseUp, false);
@@ -49,13 +62,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(e.dataTransfer.files[i].path);
             }
 
-            var texture = THREE.ImageUtils.loadTexture(e.dataTransfer.files[0].path);
-
-            cube.material = new THREE.MeshLambertMaterial({
-                map: texture
+            var imagePath = e.dataTransfer.files[0].path;
+            lwip.open(imagePath, function(err, image) {
+                scene.remove(cube);
+                var geometry = new THREE.BoxGeometry(image.width() / 500, image.height() / 500, 1);
+                var texture = THREE.ImageUtils.loadTexture(imagePath);
+                var material = new THREE.MeshLambertMaterial({ map: texture });
+                cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+                console.log(image.width(), image.height());
             });
-
-            console.log(texture.image.keys());
 
             return false;
         };
@@ -65,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // camera
         camera = new THREE.PerspectiveCamera(75, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1, 1000);
+        //camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 1, 1000);
         camera.position.z = 5;
 
         //scene
@@ -74,16 +91,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var ambient = new THREE.AmbientLight(0xffffff);
         scene.add(ambient);
 
-        // more lights
-        var directionalLight = new THREE.DirectionalLight( 0xffeedd );
-        directionalLight.position.set(0, -70, 100).normalize();
-        scene.add(directionalLight);
-
         // renderer
         webglRenderer = new THREE.WebGLRenderer();
         webglRenderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
         webglRenderer.domElement.style.position = "relative";
-        container.appendChild( webglRenderer.domElement );
+        container.appendChild(webglRenderer.domElement);
 
         // scene
         createScene(new THREE.BoxGeometry(10, 10, 1));
@@ -136,8 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function render() {
-        cube.rotation.y = mouseX / SCREEN_WIDTH;
-        cube.rotation.x = mouseY / SCREEN_HEIGHT;
         webglRenderer.render(scene, camera);
     }
 });

@@ -1,7 +1,10 @@
 {
-    "name": "cutting-board",
-    "main": "index.html",
-    "window": {
-        "toolbar": true
-    }
+  "name": "cutting-board",
+  "main": "index.html",
+  "window": {
+    "toolbar": true
+  },
+  "dependencies": {
+    "lwip": "0.0.6"
+  }
 }
