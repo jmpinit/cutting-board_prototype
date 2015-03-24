@@ -1,3 +1,5 @@
+"use strict";
+
 document.addEventListener('DOMContentLoaded', function() {
     var lwip = require('lwip');
 
@@ -27,6 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var webglRenderer;
 
     var cube, geometry;
+    var pointer;
 
     var mouseX = 0, mouseY = 0;
     var mousemoveX = 0, mousemoveY = 0;
@@ -105,6 +108,18 @@ document.addEventListener('DOMContentLoaded', function() {
         var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
         cube = new THREE.Mesh(geometry, material);
         scene.add(cube);
+
+        var lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+
+        var lineGeom = new THREE.Geometry();
+        lineGeom.vertices.push(
+        	new THREE.Vector3(-8, 8, -2),
+        	new THREE.Vector3(-8, 8, 2)
+        );
+        console.log(lineGeom.vertices);
+
+        pointer = new THREE.Line(lineGeom, lineMaterial);
+        scene.add(pointer);
     }
 
     function onDocumentMouseDown(event) {
@@ -140,6 +155,25 @@ document.addEventListener('DOMContentLoaded', function() {
             mousemoveX += event.movementX || event.mozMovementX || event.webkitMovementX || 0;
             mousemoveY += event.movementY || event.mozMovementY || event.webkitMovementY || 0;
         }
+
+        var vector = new THREE.Vector3(mouseX / SCREEN_WIDTH * 2, -mouseY / SCREEN_HEIGHT * 2, 0.5);
+            //(mouseX / SCREEN_WIDTH) * 2 - 1,
+            //- (mouseY / SCREEN_HEIGHT) * 2 + 1,
+            //0.5
+        //);
+
+        vector.unproject(camera);
+        var blah = vector.sub(camera.position).normalize();
+        var ray = new THREE.Ray(camera.position, blah);
+        var pos = ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
+
+        console.log(pos);
+
+        pointer.geometry.vertices[0].x = pos.x;
+        pointer.geometry.vertices[0].y = pos.y;
+        pointer.geometry.vertices[1].x = pos.x;
+        pointer.geometry.vertices[1].y = pos.y;
+        pointer.geometry.verticesNeedUpdate = true;
     }
 
     function animate() {
