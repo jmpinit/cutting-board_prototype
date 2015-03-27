@@ -100,19 +100,19 @@ Director.prototype.onKeypress = function(event) {
 
     switch(char) {
         case 'w':
-            this.cameraInfo.y += 10;
+            this.cameraInfo.y += 50;
             this.updateCamera();
             break;
         case 'a':
-            this.cameraInfo.x -= 10;
+            this.cameraInfo.x -= 50;
             this.updateCamera();
             break;
         case 's':
-            this.cameraInfo.y -= 10;
+            this.cameraInfo.y -= 50;
             this.updateCamera();
             break;
         case 'd':
-            this.cameraInfo.x += 10;
+            this.cameraInfo.x += 50;
             this.updateCamera();
             break;
     }
@@ -172,8 +172,8 @@ Director.prototype.load = function(fn, callback) {
                                 pts.push(new three.Vector2(offsetX + -halfWidth + pt[0], offsetY + halfHeight - pt[1]));
                             }
                             var shape = new three.Shape(pts);
-                            var geometry = new three.ExtrudeGeometry(shape, {amount: 1});
-                            var material = new three.MeshBasicMaterial({ color: 0xffff00, wireframe: true});
+                            var geometry = new three.ExtrudeGeometry(shape, { amount: 10, bevelEnabled: false });
+                            var material = new three.MeshLambertMaterial({ color: 0x000000, opacity: 0.5, transparent: true });
                             var mesh = new three.Mesh(geometry, material);
                             scene.add(mesh);
                             break;
@@ -185,20 +185,21 @@ Director.prototype.load = function(fn, callback) {
                                 pts.push(new three.Vector2(offsetX + -halfWidth + pt[0], offsetY + halfHeight - pt[1]));
                             }
                             var shape = new three.Shape(pts);
-                            var geometry = new three.ExtrudeGeometry(shape, {amount: 1});
-                            var material = new three.MeshBasicMaterial({ color: 0xffff00, wireframe: true});
+                            var geometry = new three.ExtrudeGeometry(shape, { amount: 5, bevelEnabled: false });
+                            var material = new three.MeshLambertMaterial({ color: 0x00ff00, opacity: 0.5, transparent: true });
                             var mesh = new three.Mesh(geometry, material);
                             scene.add(mesh);
                             break;
 
                         case "via":
-                            var geometry = new three.CylinderGeometry(5, 5, 20, 32);
-                            var material = new three.MeshBasicMaterial( {color: 0xff00ff} );
+                            var geometry = new three.CylinderGeometry(10, 0, 10, 32);
+                            var material = new three.MeshBasicMaterial( {color: 0xff8800} );
                             var cylinder = new three.Mesh( geometry, material );
 
                             var x = offsetX + -halfWidth + feature.position[0];
                             var y = offsetY + halfHeight - feature.position[1];
 
+                            cylinder.translateZ(5);
                             cylinder.translateX(x);
                             cylinder.translateY(y);
                             cylinder.rotateOnAxis(new three.Vector3(1, 0, 0), Math.PI / 2);
