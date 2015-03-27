@@ -5,26 +5,83 @@ var async = require('async'),
 var jsonlint = require('jsonlint'),
     lwip = require('lwip');
 
-function makeImageLayerBuilder(three, scene, filename) {
+var myUniforms;
+
+function makeImageLayerBuilder(three, renderer, scene, filename) {
     return function(callback) {
         var texture = three.ImageUtils.loadTexture(filename);
-        texture.minFilter = three.LinearFilter;
+        texture.minFilter = three.NearestFilter;
+        texture.magFilter = three.NearestFilter;
 
-        var material = new three.MeshLambertMaterial({ map: texture });
+        // you may need to modify these parameters
+        var renderTargetParams = {
+            minFilter: three.LinearFilter,
+            stencilBuffer: false,
+            depthBuffer: false
+        };
+
+        // custom RTT materials
+        myUniforms = {
+            colorMap: { type: "t", value: texture },
+            threshold: { type: "f", value: 0.3 }
+        };
+
+        var myTextureMat = new three.ShaderMaterial({
+            uniforms: myUniforms,
+            vertexShader: [
+                "varying vec2 vUv;",
+                "void main() {",
+                    "vUv = uv;",
+                    "gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );",
+                "}"
+            ].join("\n"),
+            fragmentShader: [
+        		"uniform sampler2D colorMap;",
+                "uniform float threshold;",
+        		"varying vec2 vUv;",
+
+        		"void main() {",
+        			"vec4 color = texture2D(colorMap, vUv);",
+                    "float brightness = (color.r + color.g + color.b) / 3.0;",
+        			"gl_FragColor = vec4(step(threshold, brightness), step(threshold, brightness), step(threshold, brightness), 0.0);",
+        		"}"
+            ].join("\n")
+        });
+
+        //var material = new three.MeshLambertMaterial({ map: texture });
 
         lwip.open(filename, function(err, image) {
             if (err) callback(err);
 
-            var geometry = new three.BoxGeometry(image.width(), image.height(), 1);
-            var mesh = new three.Mesh(geometry, material);
-            scene.add(mesh);
+            /*var geometry = new three.BoxGeometry(image.width(), image.height(), 1);
+            var mesh = new three.Mesh(geometry, material);*/
+
+            // new render-to-texture scene
+            var imageScene = new three.Scene();
+
+            // create buffer
+            var computedTexture = new three.WebGLRenderTarget(image.width(), image.height(), renderTargetParams);
+
+            // setup render-to-texture scene
+            var myCamera = new three.OrthographicCamera(image.width() / - 2, image.width() / 2, image.height() / 2, image.height() / - 2, -10000, 10000);
+
+            var myTextureGeo = new three.PlaneGeometry(image.width(), image.height());
+            myTextureMesh = new three.Mesh(myTextureGeo, myTextureMat);
+            //myTextureMesh.position.z = -100;
+            imageScene.add(myTextureMesh);
+
+            //scene.add(mesh);
+            renderer.render(imageScene, myCamera, computedTexture, true);
+
+            scene.add(myTextureMesh);
 
             callback(null, {
                 name: path.basename(filename),
                 x: 0, y: 0,
                 width: image.width(),
                 height: image.height(),
-                mesh: mesh
+                //mesh: mesh
+                mesh: myTextureMesh
             });
         });
     }
@@ -92,6 +149,8 @@ Director.prototype.onMouseMove = function(event) {
 
     this.cameraInfo.xAngle = Math.PI * (mouseX / this.renderInfo.width);
 
+    myUniforms.threshold.value = mouseY / this.renderInfo.height;
+
     this.updateCamera();
 }
 
@@ -129,6 +188,7 @@ Director.prototype.load = function(fn, callback) {
 
     var three = this.three;
     var scene = this.scene;
+    var renderer = this.renderer;
 
     fs.readFile(path.join(fn, 'pcbs.json'), 'utf8', function(err, data) {
         if (err) {
@@ -234,7 +294,7 @@ Director.prototype.load = function(fn, callback) {
             var imageLayerBuilders = [];
             for (var i = 0; i < layer.images.length; i++) {
                 var imagePath = path.join(fn, layer.images[i]);
-                imageLayerBuilders.push(makeImageLayerBuilder(three, scene, imagePath));
+                imageLayerBuilders.push(makeImageLayerBuilder(three, renderer, scene, imagePath));
             }
 
             async.parallel(imageLayerBuilders, function(err, results) {
