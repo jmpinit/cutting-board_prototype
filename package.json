@@ -5,6 +5,7 @@
     "toolbar": true
   },
   "dependencies": {
-    "lwip": "0.0.6"
+    "lwip": "0.0.6",
+    "jsonlint": "~1.6.2"
   }
 }
