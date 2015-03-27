@@ -35,7 +35,14 @@ function Director(three, width, height) {
 
     this.renderInfo = {
         width: width,
-        height: height
+        height: height,
+    };
+
+    this.cameraInfo = {
+        distance: 2000,
+        xAngle: 0,
+        x: 0,
+        y: 0
     };
 
     this.renderer = new this.three.WebGLRenderer();
@@ -43,6 +50,72 @@ function Director(three, width, height) {
     this.renderer.domElement.style.position = "relative";
 
     this.target = this.renderer.domElement;
+}
+
+Director.prototype.render = function() {
+    this.renderer.render(this.scene, this.camera);
+}
+
+Director.prototype.resize = function(width, height) {
+    this.renderer.setSize(width, height);
+    this.renderInfo.width = width;
+    this.renderInfo.height = height;
+}
+
+Director.prototype.updateCamera = function() {
+    var yAxis = new this.three.Vector3(0, 1, 0);
+    var view = new this.three.Vector3(this.cameraInfo.x, this.cameraInfo.y, this.cameraInfo.distance);
+    view.applyAxisAngle(yAxis, this.cameraInfo.xAngle);
+
+    this.camera.position.x = view.x;
+    this.camera.position.y = view.y;
+    this.camera.position.z = view.z;
+
+    this.camera.lookAt(new this.three.Vector3(this.cameraInfo.x, this.cameraInfo.y, 0));
+}
+
+Director.prototype.onMouseWheel = function(event) {
+    this.cameraInfo.distance -= event.wheelDelta;
+    this.updateCamera();
+}
+
+Director.prototype.onMouseMove = function(event) {
+    var mouseX = (event.clientX - this.renderInfo.width / 2);
+    var mouseY = (event.clientY - this.renderInfo.height / 2);
+
+    var mousePos = new this.three.Vector3(mouseX / this.renderInfo.width * 2, -mouseY / this.renderInfo.height * 2, 0.5);
+
+    /*vector.unproject(this.camera);
+    var blah = vector.sub(this.camera.position).normalize();
+    var ray = new this.three.Ray(this.camera.position, blah);
+    var pos = ray.intersectPlane(new this.three.Plane(new this.three.Vector3(0, 0, 1), 0));*/
+
+    this.cameraInfo.xAngle = Math.PI * (mouseX / this.renderInfo.width);
+
+    this.updateCamera();
+}
+
+Director.prototype.onKeypress = function(event) {
+    var char = String.fromCharCode(event.charCode);
+
+    switch(char) {
+        case 'w':
+            this.cameraInfo.y += 10;
+            this.updateCamera();
+            break;
+        case 'a':
+            this.cameraInfo.x -= 10;
+            this.updateCamera();
+            break;
+        case 's':
+            this.cameraInfo.y -= 10;
+            this.updateCamera();
+            break;
+        case 'd':
+            this.cameraInfo.x += 10;
+            this.updateCamera();
+            break;
+    }
 }
 
 Director.prototype.load = function(fn, callback) {
@@ -88,11 +161,8 @@ Director.prototype.load = function(fn, callback) {
                 var offsetX = this.imageLayers[0].x;
                 var offsetY = this.imageLayers[0].y;
 
-                console.log(layer.features.length);
                 for (var i = 0; i < layer.features.length; i++) {
                     var feature = layer.features[i];
-
-                    console.log(feature);
 
                     switch(feature.type) {
                         case "device":
@@ -157,20 +227,6 @@ Director.prototype.load = function(fn, callback) {
     });
 
     callback();
-}
-
-Director.prototype.render = function() {
-    this.renderer.render(this.scene, this.camera);
-}
-
-Director.prototype.resize = function(width, height) {
-    this.renderer.setSize(width, height);
-    this.renderInfo.width = width;
-    this.renderInfo.height = height;
-}
-
-Director.prototype.onMouseWheel = function(event) {
-    this.camera.position.z -= event.wheelDelta;
 }
 
 module.exports = Director;

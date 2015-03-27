@@ -35,36 +35,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         document.addEventListener('mousewheel', function(event) { director.onMouseWheel(event); });
+        document.addEventListener('mousemove', function(event) { director.onMouseMove(event); });
+        document.addEventListener('keypress', function(event) { director.onKeypress(event); });
     }
 
     function animate() {
         requestAnimationFrame(animate);
         director.render();
     }
-
-    /*function onDocumentMouseMove(event) {
-        mouseX = (event.clientX - windowHalfX);
-        mouseY = (event.clientY - windowHalfY);
-
-        document.pointerLockElement =
-        document.pointerLockElement ||
-        document.mozPointerLockElement ||
-        document.webkitPointerLockElement;
-
-        if (document.pointerLockElement) {
-            mousemoveX += event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-            mousemoveY += event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-        }
-
-        var vector = new THREE.Vector3(mouseX / SCREEN_WIDTH * 2, -mouseY / SCREEN_HEIGHT * 2, 0.5);
-
-        vector.unproject(camera);
-        var blah = vector.sub(camera.position).normalize();
-        var ray = new THREE.Ray(camera.position, blah);
-        var pos = ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
-
-        pointer.translateX(0.1);
-        pointer.translateY(0.0);
-        //pointer.geometry.verticesNeedUpdate = true;
-    }*/
 });
