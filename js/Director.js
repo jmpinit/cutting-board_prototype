@@ -171,11 +171,29 @@ Director.prototype.load = function(fn, callback) {
                                 var pt = feature.outline[j];
                                 pts.push(new three.Vector2(offsetX + -halfWidth + pt[0], offsetY + halfHeight - pt[1]));
                             }
+
                             var shape = new three.Shape(pts);
                             var geometry = new three.ExtrudeGeometry(shape, { amount: 10, bevelEnabled: false });
-                            var material = new three.MeshLambertMaterial({ color: 0x000000, opacity: 0.5, transparent: true });
+                            var material = new three.MeshLambertMaterial({ color: 0x000000, opacity: 0.8, transparent: true });
                             var mesh = new three.Mesh(geometry, material);
                             scene.add(mesh);
+
+                            for(var j in feature.pins) {
+                                var pin = feature.pins[j];
+
+                                var pts = [];
+                                for(var k in pin.outline) {
+                                    var pt = pin.outline[k];
+                                    pts.push(new three.Vector2(offsetX + -halfWidth + pt[0], offsetY + halfHeight - pt[1]));
+                                }
+
+                                var shape = new three.Shape(pts);
+                                var geometry = new three.ExtrudeGeometry(shape, { amount: 10, bevelEnabled: false });
+                                var material = new three.MeshLambertMaterial({ color: 0x888888, opacity: 0.8, transparent: true });
+                                var mesh = new three.Mesh(geometry, material);
+                                scene.add(mesh);
+                            }
+
                             break;
 
                         case "copper":
@@ -186,7 +204,7 @@ Director.prototype.load = function(fn, callback) {
                             }
                             var shape = new three.Shape(pts);
                             var geometry = new three.ExtrudeGeometry(shape, { amount: 5, bevelEnabled: false });
-                            var material = new three.MeshLambertMaterial({ color: 0x00ff00, opacity: 0.5, transparent: true });
+                            var material = new three.MeshLambertMaterial({ color: 0x00ff00, opacity: 0.8, transparent: true });
                             var mesh = new three.Mesh(geometry, material);
                             scene.add(mesh);
                             break;
