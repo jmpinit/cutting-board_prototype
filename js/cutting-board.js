@@ -5,20 +5,12 @@ var Director = require('./js/Director');
 document.addEventListener('DOMContentLoaded', function() {
     if (!Detector.webgl) Detector.addGetWebGLMessage();
 
-    var SCREEN_WIDTH, SCREEN_HEIGHT;
-    var windowHalfX, windowHalfY;
-
     var director;
 
     window.onresize = function(event) {
         if(director !== undefined)
             director.resize(window.innerWidth, window.innerHeight);
     };
-
-    /*document.addEventListener('mousedown', onDocumentMouseDown, false);
-    document.addEventListener('mouseup', onDocumentMouseUp, false);
-    document.addEventListener('mousemove', onDocumentMouseMove, false);
-    document.addEventListener('mousewheel', onDocumentMouseWheel, false);*/
 
     init();
 
@@ -41,6 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
             animate();
             console.log("director loaded scene.");
         });
+
+        document.addEventListener('mousewheel', function(event) { director.onMouseWheel(event); });
     }
 
     function animate() {
@@ -48,27 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
         director.render();
     }
 
-    /*function onDocumentMouseDown(event) {
-        document.body.requestPointerLock =
-        document.body.requestPointerLock ||
-        document.body.mozRequestPointerLock ||
-        document.body.webkitRequestPointerLock;
-        document.body.requestPointerLock();
-    }
-
-    function onDocumentMouseUp(event) {
-        document.exitPointerLock =
-        document.exitPointerLock ||
-        document.mozExitPointerLock ||
-        document.webkitExitPointerLock;
-        document.exitPointerLock();
-    }
-
-    function onDocumentMouseWheel(event) {
-        camera.position.z -= event.wheelDelta/120;
-    }
-
-    function onDocumentMouseMove(event) {
+    /*function onDocumentMouseMove(event) {
         mouseX = (event.clientX - windowHalfX);
         mouseY = (event.clientY - windowHalfY);
 

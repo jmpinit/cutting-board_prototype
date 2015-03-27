@@ -5,27 +5,6 @@ var async = require('async'),
 var jsonlint = require('jsonlint'),
     lwip = require('lwip');
 
-/*{
-    device: function(context, data) {
-        var geometry = new THREE.BoxGeometry(10, 10, 1);
-        var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-
-        return new THREE.Mesh(geometry, material);
-    },
-
-    pin: function(context, data) {
-
-    },
-
-    via: function(context, data) {
-
-    },
-
-    copper: function(context, data) {
-
-    }
-}*/
-
 function makeImageLayerBuilder(three, scene, filename) {
     return function(callback) {
         var texture = three.ImageUtils.loadTexture(filename);
@@ -36,12 +15,13 @@ function makeImageLayerBuilder(three, scene, filename) {
         lwip.open(filename, function(err, image) {
             if (err) callback(err);
 
-            var geometry = new three.BoxGeometry(image.width() / 500, image.height() / 500, 1);
+            var geometry = new three.BoxGeometry(image.width(), image.height(), 1);
             var mesh = new three.Mesh(geometry, material);
             scene.add(mesh);
 
             callback(null, {
                 name: path.basename(filename),
+                x: 0, y: 0,
                 width: image.width(),
                 height: image.height(),
                 mesh: mesh
@@ -63,33 +43,19 @@ function Director(three, width, height) {
     this.renderer.domElement.style.position = "relative";
 
     this.target = this.renderer.domElement;
-
-    /*(function() {
-        var geometry = new this.three.BoxGeometry(0.01, 0.1, 2);
-        var material = new this.three.MeshBasicMaterial({ color: 0xff00ff });
-        pointer = new this.three.Mesh(geometry, material);
-        scene.add(pointer);
-    })();*/
 }
 
 Director.prototype.load = function(fn, callback) {
     this.scene = new this.three.Scene();
 
-    this.camera = new this.three.PerspectiveCamera(75, this.renderInfo.width / this.renderInfo.height, 0.1, 1000);
-    this.camera.position.z = 5;
+    this.camera = new this.three.PerspectiveCamera(75, this.renderInfo.width / this.renderInfo.height, 0.1, 5000);
+    this.camera.position.z = 2000;
 
     var ambient = new this.three.AmbientLight(0xffffff);
     this.scene.add(ambient);
 
     var three = this.three;
     var scene = this.scene;
-
-    /*(function() {
-        var geometry = new three.BoxGeometry(10, 10, 1);
-        var material = new three.MeshBasicMaterial({ color: 0x00ff00 });
-        cube = new three.Mesh(geometry, material);
-        scene.add(cube);
-    })();*/
 
     fs.readFile(path.join(fn, 'pcbs.json'), 'utf8', function(err, data) {
         if (err) {
@@ -110,15 +76,82 @@ Director.prototype.load = function(fn, callback) {
             throw new Error("no signal-layers!");
 
         async.each(pcbs["signal-layers"], function(layer, callback) {
+            function buildFeatureLayer() {
+                if(this.imageLayers === undefined || this.imageLayers.length === 0) {
+                    console.log("no image layers to base feature coordinate system on.");
+                    return;
+                }
+
+                var halfWidth = this.imageLayers[0].width / 2;
+                var halfHeight = this.imageLayers[0].height / 2;
+
+                var offsetX = this.imageLayers[0].x;
+                var offsetY = this.imageLayers[0].y;
+
+                console.log(layer.features.length);
+                for (var i = 0; i < layer.features.length; i++) {
+                    var feature = layer.features[i];
+
+                    console.log(feature);
+
+                    switch(feature.type) {
+                        case "device":
+                            var pts = [];
+                            for(var j in feature.outline) {
+                                var pt = feature.outline[j];
+                                pts.push(new three.Vector2(offsetX + -halfWidth + pt[0], offsetY + halfHeight - pt[1]));
+                            }
+                            var shape = new three.Shape(pts);
+                            var geometry = new three.ExtrudeGeometry(shape, {amount: 1});
+                            var material = new three.MeshBasicMaterial({ color: 0xffff00, wireframe: true});
+                            var mesh = new three.Mesh(geometry, material);
+                            scene.add(mesh);
+                            break;
+
+                        case "copper":
+                            var pts = [];
+                            for(var j in feature.outline) {
+                                var pt = feature.outline[j];
+                                pts.push(new three.Vector2(offsetX + -halfWidth + pt[0], offsetY + halfHeight - pt[1]));
+                            }
+                            var shape = new three.Shape(pts);
+                            var geometry = new three.ExtrudeGeometry(shape, {amount: 1});
+                            var material = new three.MeshBasicMaterial({ color: 0xffff00, wireframe: true});
+                            var mesh = new three.Mesh(geometry, material);
+                            scene.add(mesh);
+                            break;
+
+                        case "via":
+                            var geometry = new three.CylinderGeometry(5, 5, 20, 32);
+                            var material = new three.MeshBasicMaterial( {color: 0xff00ff} );
+                            var cylinder = new three.Mesh( geometry, material );
+
+                            var x = offsetX + -halfWidth + feature.position[0];
+                            var y = offsetY + halfHeight - feature.position[1];
+
+                            cylinder.translateX(x);
+                            cylinder.translateY(y);
+                            cylinder.rotateOnAxis(new three.Vector3(1, 0, 0), Math.PI / 2);
+
+                            scene.add(cylinder);
+
+                            break;
+                    }
+                }
+            }
+
+            // construct image layers
+
             var imageLayerBuilders = [];
             for (var i = 0; i < layer.images.length; i++) {
                 var imagePath = path.join(fn, layer.images[i]);
                 imageLayerBuilders.push(makeImageLayerBuilder(three, scene, imagePath));
             }
 
-            // construct image layers
             async.parallel(imageLayerBuilders, function(err, results) {
+                this.imageLayers = results;
                 console.log("images layers constructed!", results);
+                buildFeatureLayer();
             });
         });
     });
@@ -134,6 +167,10 @@ Director.prototype.resize = function(width, height) {
     this.renderer.setSize(width, height);
     this.renderInfo.width = width;
     this.renderInfo.height = height;
+}
+
+Director.prototype.onMouseWheel = function(event) {
+    this.camera.position.z -= event.wheelDelta;
 }
 
 module.exports = Director;
